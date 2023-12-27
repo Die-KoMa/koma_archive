@@ -7,19 +7,21 @@ import os
 
 import bs4
 import pandas as pd
-from pathlib2 import PosixPath
+from pathlib import PosixPath
 import requests
 
 
 HEADERS = {
     "User-Agent": "KoMa-pad-archiver/0.1.0 (https://github.com/nicoa/koma_archive)"
 }
+TIMEOUT = 3
 
 
 logging.basicConfig(
     format="%(asctime)s %(levelname)s:%(message)s",
     level=logging.INFO,
     datefmt="%I:%M:%S",
+    filename="logs.log",
 )
 logger = logging.getLogger("padgrapper")
 logger.setLevel(logging.INFO)
@@ -42,16 +44,20 @@ def confirm(prompt=None, resp=False):
         ans = input(prompt)
         if not ans:
             return resp
-        if ans not in ["y", "Y", "n", "N"]:
+        if ans.lower not in ["y", "n"]:
             print("please enter y or n.")
             continue
-        if ans == "y" or ans == "Y":
+        if ans.lower() == "y":
             return True
-        if ans == "n" or ans == "N":
+        if ans.lower() == "n":
             return False
 
 
 def _remove_bad_words(url):
+    if isinstance(url, list):
+        # allows to use this for lists instead of `list(map(_remove_bad_words, urls))`
+        return [_remove_bad_words(u) for u in url]
+
     url = url.replace("/etherpad/p/", "/p/")  # not having two variants
     url = "_".join(
         x
@@ -71,11 +77,11 @@ def _remove_bad_words(url):
 def get_pad_content(url, destination):
     """Read Pad content and write to HTML, after that return found links."""
     if "/p/" not in url:
-        logger.info("IGNORED {} is not a valid pad url".format(url.encode("utf-8")))
+        logger.info(f"IGNORED {url.encode("utf-8")} is not a valid pad url")
         return []
 
     try:
-        r = requests.get(url + "/export/html", headers=HEADERS)
+        r = requests.get(f"{url}/export/html", headers=HEADERS, timeout=TIMEOUT)
         r.encoding = "utf-8"
     except requests.ConnectionError as e:
         logger.error(e)
