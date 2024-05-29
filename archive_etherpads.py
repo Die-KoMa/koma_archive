@@ -11,7 +11,7 @@ from pathlib2 import PosixPath
 import requests
 
 
-DELAY_504 = 30
+DELAY_504 = 90
 HEADERS = {
     "User-Agent": "KoMa-pad-archiver/0.1.0 (https://github.com/nicoa/koma_archive)"
 }
