@@ -11,6 +11,7 @@ from pathlib2 import PosixPath
 import requests
 
 
+DELAY_504 = 30
 HEADERS = {
     "User-Agent": "KoMa-pad-archiver/0.1.0 (https://github.com/nicoa/koma_archive)"
 }
@@ -68,7 +69,7 @@ def _remove_bad_words(url):
     return url
 
 
-def get_pad_content(url, destination):
+def get_pad_content(url, destination, is_retry=False):
     """Read Pad content and write to HTML, after that return found links."""
     if "/p/" not in url:
         logger.info("IGNORED {} is not a valid pad url".format(url.encode("utf-8")))
@@ -89,6 +90,13 @@ def get_pad_content(url, destination):
             )
         )
         time.sleep(delay)
+    elif not is_retry and r.status_code == 504:
+        delay = DELAY_504
+        logger.warn(
+            "got status code 504 (Bad Gateway), waiting for {} seconds".format(delay)
+        )
+        time.sleep(delay)
+        return get_pad_content(url, destination, is_retry=True)
     elif r.status_code != 200:
         new_url = "{}/p/{}_seenotrettung".format(
             "https://fachschaften.rwth-aachen.de/etherpad", url.split("/")[-1]
